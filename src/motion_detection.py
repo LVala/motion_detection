@@ -1,26 +1,39 @@
 import numpy as np
 import cv2
 
-CONT_AR = 10  # TODO change sensitivity
+CONT_AR = 10
 DEBUG = False  # TODO debug mode
 USE_CUSTOM_AREA = True
 
 cap = cv2.VideoCapture("test.avi")  # TODO different video sources
+# TODO add posibility to save output video
 
+# create main window
+root_wind = "Motion detector"
+cv2.namedWindow(root_wind)
+cv2.createTrackbar("Minimal object area", root_wind, 5, 2000, lambda x: x)
+cv2.setTrackbarPos("Minimal object area", root_wind, CONT_AR)
 
+# def on_debug(*args):
+#     return args
+# cv2.createButton("Debug mode", on_debug, [40, 50], 1, 0)
+
+# initial frame
 ret, frame1 = cap.read()
 gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 blur1 = cv2.GaussianBlur(gray1, (21, 21), 0)
 
 # select area of interest
-roi = cv2.selectROI("Select area or interest", frame1)
-cv2.destroyWindow("Select area or interest")
-black = np.zeros((frame1.shape[0], frame1.shape[1], 3), np.uint8)
-black1 = cv2.rectangle(black,(roi[0], roi[1]),(roi[0]+roi[2], roi[1]+roi[3]),(255, 255, 255), -1)
-gray = cv2.cvtColor(black,cv2.COLOR_BGR2GRAY)
-ret,b_mask = cv2.threshold(gray,127,255, 0)
+if USE_CUSTOM_AREA:
+    roi = cv2.selectROI(root_wind, frame1)
+    black = np.zeros((frame1.shape[0], frame1.shape[1], 3), np.uint8)
+    black1 = cv2.rectangle(black,(roi[0], roi[1]),(roi[0]+roi[2], roi[1]+roi[3]),(255, 255, 255), -1)
+    gray = cv2.cvtColor(black,cv2.COLOR_BGR2GRAY)
+    ret,b_mask = cv2.threshold(gray,127,255, 0)
 
 while cap.isOpened():
+    CONT_AR = cv2.getTrackbarPos("Minimal object area", root_wind)  # get sensitivity from the trackbar
+
     ret, frame2 = cap.read()
     gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     blur2 = cv2.GaussianBlur(gray2, (21, 21), 0)
@@ -38,7 +51,7 @@ while cap.isOpened():
         x, y, w, h = cv2.boundingRect(contour)
         cv2.rectangle(frame2, (x, y), (x+w, y+h), (0, 0, 255), 2)
 
-    cv2.imshow("Motion detector", frame2)  # TODO text on screen, for instance "Motion detected"
+    cv2.imshow(root_wind, frame2)  # TODO text on screen, for instance "Motion detected"
     if cv2.waitKey(40) & 0xFF == ord('q'):
         break
 
