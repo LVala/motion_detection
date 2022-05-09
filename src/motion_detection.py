@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 import datetime
+import time
 import os
 import cv2
 
@@ -32,9 +33,15 @@ def main():
             print("detmot: error: source file does not exist")
             exit(1)
 
-    cap = cv2.VideoCapture(args.source)
+    if not DEVICE: cap = cv2.VideoCapture(args.source)
+    else: 
+        cap = cv2.VideoCapture(int(args.source))
+        time.sleep(2)
+        if not cap.isOpened():
+            print("detmot: error: device cannot be opened")
+            exit(1)
 
-    if DEVICE: waitTime = 0
+    if DEVICE: waitTime = 10
     else: waitTime = 40
 
     # output file
