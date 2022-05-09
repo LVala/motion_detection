@@ -14,7 +14,7 @@ def main():
     parser.add_argument("-f", "--framebyframe", action="store_true", help="Use difference of next 2 frames instead of current and reference frame")
     parser.add_argument("-a", "--area", type=int, default=100, help="Initial minimal object area (0-2000)")
     parser.add_argument("-o", "--output", help="Write video with highlited motion to specified file")
-    # TODO źródło inne niż plik
+    parser.add_argument("-s", "--device", action="store_true", help="Use device instead of file")
 
     args = parser.parse_args()
 
@@ -24,12 +24,18 @@ def main():
     USE_CUSTOM_AREA = args.mask
     FRAME_BY_FRAME = args.framebyframe
     TO_FILE = args.output is not None
+    DEVICE = args.device
 
-    if not os.path.isfile(args.source):
-        print("detmot: error: source file does not exist")
-        exit(1)
+    # obtain the video from source
+    if not DEVICE:
+        if not os.path.isfile(args.source):
+            print("detmot: error: source file does not exist")
+            exit(1)
 
     cap = cv2.VideoCapture(args.source)
+
+    if DEVICE: waitTime = 0
+    else: waitTime = 40
 
     # output file
     if TO_FILE:
@@ -88,12 +94,28 @@ def main():
         cv2.putText(frame2, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         if TIME: cv2.putText(frame2, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"), (10, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
+        if DEBUG:
+            cv2.imshow(root_wind, gray2)
+            if cv2.waitKey(400) == ord('q'):
+                break
+            cv2.imshow(root_wind, blur2)
+            if cv2.waitKey(400) == ord('q'):
+                break
+            cv2.imshow(root_wind, frame_diff)
+            if cv2.waitKey(400) == ord('q'):
+                break
+            cv2.imshow(root_wind, thresh)
+            if cv2.waitKey(400) == ord('q'):
+                break
+            cv2.imshow(root_wind, dilated)
+
+
         cv2.imshow(root_wind, frame2)
-        if cv2.waitKey(40) == ord('q'):
+        if cv2.waitKey(waitTime) == ord('q'):
             break
 
         if FRAME_BY_FRAME: blur1 = blur2
 
     cv2.destroyAllWindows()
     cap.release()
-    out.release()
+    if TO_FILE: out.release()
