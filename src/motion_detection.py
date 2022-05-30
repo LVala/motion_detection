@@ -27,16 +27,11 @@ def main():
     TO_FILE = args.output is not None
     DEVICE = args.device
 
-    # obtain the video from source
-    if not DEVICE:
-        if not os.path.isfile(args.source):
-            print("detmot: error: source file does not exist")
-            exit(1)
-
-    if not DEVICE: cap = cv2.VideoCapture(args.source)
+    if not DEVICE: 
+        cap = cv2.VideoCapture(args.source)
     else: 
         cap = cv2.VideoCapture(int(args.source))
-        time.sleep(2)
+        time.sleep(1)
         if not cap.isOpened():
             print("detmot: error: device cannot be opened")
             exit(1)
@@ -52,7 +47,6 @@ def main():
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
         out = cv2.VideoWriter(f"{args.output}.avi", fourcc, 20.0, size)
     
-
     # create main window
     root_wind = "Motion detector"
     cv2.namedWindow(root_wind)
@@ -61,17 +55,25 @@ def main():
 
     # initial (reference) frame
     ret, frame1 = cap.read()
+    if not ret:
+        print("detmot: error: cannot recieve frame")
+        exit(1)
     gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
     blur1 = cv2.GaussianBlur(gray1, (21, 21), 0)
 
     # select area of interest
     if USE_CUSTOM_AREA:
-        roi = cv2.selectROI(root_wind, frame1)
+        rois = cv2.selectROIs(root_wind, frame1)
         black = np.zeros((frame1.shape[0], frame1.shape[1], 3), np.uint8)
-        cv2.rectangle(black,(roi[0], roi[1]),(roi[0]+roi[2], roi[1]+roi[3]),(255, 255, 255), -1)
+        for roi in rois:
+            cv2.rectangle(black, (roi[0], roi[1]),(roi[0]+roi[2], roi[1]+roi[3]),(255, 255, 255), -1)
         gray = cv2.cvtColor(black,cv2.COLOR_BGR2GRAY)
         b_mask = cv2.threshold(gray,127,255, cv2.THRESH_BINARY)[1]
 
+        cv2.imshow(root_wind, b_mask)
+        cv2.waitKey(10000000)
+
+    i = 0 
     while cap.isOpened():
         CONT_AREA = cv2.getTrackbarPos("Minimal object area", root_wind)  # get sensitivity from the trackbar
 
@@ -121,7 +123,13 @@ def main():
         if cv2.waitKey(waitTime) == ord('q'):
             break
 
-        if FRAME_BY_FRAME: blur1 = blur2
+        if FRAME_BY_FRAME:
+            if len(contours) == 0:
+                blur1 = blur2
+
+            # i += 1
+            # if i % 5 == 0:
+            #     blur1 = blur2
 
     cv2.destroyAllWindows()
     cap.release()
